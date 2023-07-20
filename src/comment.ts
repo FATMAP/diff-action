@@ -5,10 +5,10 @@ import { GitHub } from '@actions/github/lib/utils'
 
 type Octokit = InstanceType<typeof GitHub>
 
-type CommentOptions = {
-  header: string
-  footer: string
-}
+  type CommentOptions = {
+    header: string
+    footer: string
+  }
 
 export const comment = async (octokit: Octokit, diffs: Diff[], o: CommentOptions): Promise<void> => {
   if (github.context.payload.pull_request === undefined) {
@@ -19,7 +19,7 @@ export const comment = async (octokit: Octokit, diffs: Diff[], o: CommentOptions
   let details = `
 <details>
 
-${diffs.map(template).join('\n')}
+    ${diffs.map(template).join('\n')}
 
 </details>
 `
@@ -33,19 +33,19 @@ ${diffs.map(template).join('\n')}
 
   const key = `\
 <!-- ${github.context.workflow}/${github.context.job}/${github.context.action} -->
-${o.footer}`
+    ${o.footer}`
 
   const body = `\
-${o.header}
+  ${o.header}
 
-${diffs
-  .map(summary)
-  .filter((e) => e)
-  .join('\n')}
+  ${diffs
+      .map(summary)
+      .filter((e) => e)
+      .join('\n')}
 
-${details}
+  ${details}
 
-${key}`
+  ${key}`
 
   await createOrUpdate(octokit, github.context.payload.pull_request.number, key, body)
 }
@@ -78,33 +78,39 @@ const template = (e: Diff) => {
 }
 
 const createOrUpdate = async (octokit: Octokit, issue_number: number, key: string, body: string) => {
-  core.info(`finding a comment by ${key}`)
-  const comments = await octokit.paginate(octokit.rest.issues.listComments, {
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    issue_number,
-    per_page: 100,
-  })
+  try {
+    core.info(`finding a comment by ${key}`)
+    const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      issue_number,
+      per_page: 100,
+    })
 
-  for (const c of comments) {
-    if (c.body?.includes(key)) {
-      const { data } = await octokit.rest.issues.updateComment({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        issue_number,
-        comment_id: c.id,
-        body,
-      })
-      core.info(`updated the comment as ${data.html_url}`)
-      return
+    for (const c of comments) {
+      if (c.body?.includes(key)) {
+        const { data } = await octokit.rest.issues.updateComment({
+          owner: github.context.repo.owner,
+          repo: github.context.repo.repo,
+          issue_number,
+          comment_id: c.id,
+          body,
+        })
+        if(data && data.html_url) {
+          core.info(`updated the comment as ${data.html_url}`)
+        }
+        return
+      }
     }
-  }
 
-  const { data } = await octokit.rest.issues.createComment({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    issue_number,
-    body,
-  })
-  core.info(`created a comment as ${data.html_url}`)
+    const { data } = await octokit.rest.issues.createComment({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      issue_number,
+      body,
+    })
+    core.info(`created a comment as ${data.html_url}`)
+  } catch (error) {
+    core.error(`Error in createOrUpdate: ${error.message}`)
+  }
 }
