@@ -5,10 +5,10 @@ import { GitHub } from '@actions/github/lib/utils'
 
 type Octokit = InstanceType<typeof GitHub>
 
-  type CommentOptions = {
-    header: string
-    footer: string
-  }
+type CommentOptions = {
+  header: string
+  footer: string
+}
 
 export const comment = async (octokit: Octokit, diffs: Diff[], o: CommentOptions): Promise<void> => {
   if (github.context.payload.pull_request === undefined) {
@@ -39,9 +39,9 @@ export const comment = async (octokit: Octokit, diffs: Diff[], o: CommentOptions
   ${o.header}
 
   ${diffs
-      .map(summary)
-      .filter((e) => e)
-      .join('\n')}
+    .map(summary)
+    .filter((e) => e)
+    .join('\n')}
 
   ${details}
 
@@ -96,7 +96,7 @@ const createOrUpdate = async (octokit: Octokit, issue_number: number, key: strin
           comment_id: c.id,
           body,
         })
-        if(data && data.html_url) {
+        if (data && data.html_url) {
           core.info(`updated the comment as ${data.html_url}`)
         }
         return
